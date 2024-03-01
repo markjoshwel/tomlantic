@@ -151,7 +151,7 @@ will handle pydantic.ValidationErrors into more human-readable exceptions if
   toml_string = toml.model_dump_toml().as_string()
   ```
 
-### def tomlantic.ModelBoundTOML.model_dump_toml
+### def tomlantic.ModelBoundTOML.model_dump_toml()
 
 method that dumps the model as a style-preserved `tomlkit.toml_document.TOMLDocument`
 
