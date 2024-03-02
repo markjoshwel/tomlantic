@@ -18,7 +18,7 @@ jobs:
           ref: main
 
       - name: install devbox
-        uses: jetpack-io/devbox-install-action@v0.8
+        uses: jetpack-io/devbox-install-action@v0.8.0
 
       - name: install dependencies
         run: devbox run poetry install
@@ -44,9 +44,10 @@ jobs:
           files: |
             dist/*.whl
 
-      - run: poetry config pypi-token.pypi "${{ secrets.PYPI_TOKEN }}"
-      - name: release top pypi
-        run: poetry publish
+      - name: release to pypi
+        run: |
+          poetry config pypi-token.pypi "${{ secrets.PYPI_TOKEN }}"
+          poetry publish
 
       - uses: actions/upload-artifact@v4
         with:
