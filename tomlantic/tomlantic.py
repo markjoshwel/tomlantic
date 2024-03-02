@@ -30,7 +30,7 @@ For more information, please refer to <http://unlicense.org/>
 """
 
 from copy import deepcopy
-from typing import Any, Collection, Generic, Tuple, Type, TypeVar, Union
+from typing import Any, Collection, Generic, List, Tuple, Type, TypeVar, Union
 
 from pydantic import BaseModel, ValidationError
 from pydantic_core import ErrorDetails
@@ -138,29 +138,70 @@ def validate_heterogeneous_collection(
 
 
 class TomlanticException(Exception):
-    """base exception class for tomlantic"""
+    """base exception class for all tomlantic errors"""
+
+    pass
+
+
+class TOMLBaseSingleError(TomlanticException):
+    """base exception class for single errors, e.g. TOMLMissingError, TOMLValueError"""
 
     loc: Tuple[str, ...]
     pydantic_error: ErrorDetails
 
     def __init__(
-        self, *args, loc: Tuple[str, ...], pydantic_error: ErrorDetails
+        self,
+        *args,
+        loc: Tuple[str, ...],
+        pydantic_error: ErrorDetails,
     ) -> None:
         self.loc = loc
         self.pydantic_error = pydantic_error
         super().__init__(*args)
 
 
-class TOMLMissingError(TomlanticException):
-    """raised when a toml document does not contain all the required fields/tables of a model"""
+class TOMLMissingError(TOMLBaseSingleError):
+    """error raised when a toml document does not contain all the required fields/tables of a model"""
 
     pass
 
 
-class TOMLValueError(TomlanticException):
-    """raised when an item in a toml document is invalid for its respective model field"""
+class TOMLValueError(TOMLBaseSingleError):
+    """error raised when an item in a toml document is invalid for its respective model field"""
 
     pass
+
+
+class TOMLFrozenError(TOMLBaseSingleError):
+    """error raised when assigning a value to a frozen field or value"""
+
+    pass
+
+
+class TOMLAttributeError(TOMLBaseSingleError):
+    """
+    error raised when an field does not exist, or is an extra field not in the model and
+    the model has forbidden extra fields
+    """
+
+    pass
+
+
+class TOMLValidationError(TomlanticException):
+    """
+    a toml-friendly version of pydantic.ValidationError,
+    raised when instantiating ModelBoundTOML
+    """
+
+    errors: Tuple[TOMLBaseSingleError, ...]
+
+    def __init__(
+        self,
+        *args,
+        errors: Tuple[TOMLBaseSingleError, ...],
+    ) -> None:
+        self.errors = errors
+        super().__init__(*args)
 
 
 M = TypeVar("M", bound=BaseModel)
@@ -191,18 +232,20 @@ class ModelBoundTOML(Generic[M]):
     __document: TOMLDocument
 
     def __init__(
-        self, model: Type[M], document: TOMLDocument, human_errors: bool = True
+        self,
+        model: Type[M],
+        document: TOMLDocument,
+        handle_errors: bool = True,
     ) -> None:
         """instantiates the class with a `BaseModel` and a `TOMLDocument`
 
-        will handle pydantic.ValidationErrors into more human-readable exceptions if
-        `human_errors` is True, otherwise it will raise the original
-        `pydantic.ValidationError`
+        will handle pydantic.ValidationErrors into more toml-friendly error messages.
+        set `handle_errors` to `False` to raise the original pydantic.ValidationError
 
         arguments:
-          - model:        `pydantic.BaseModel`
-          - document:     `tomlkit.toml_document.TOMLDocument`
-          - human_errors: `bool` = True
+          - model:         `pydantic.BaseModel`
+          - document:      `tomlkit.toml_document.TOMLDocument`
+          - handle_errors: `bool` = False
 
         raises:
           - `tomlantic.TOMLMissingError` if the document does not contain all the required fields/tables of the model
@@ -213,7 +256,7 @@ class ModelBoundTOML(Generic[M]):
             self.model = model.model_validate(document)
 
         except ValidationError as e:
-            if not human_errors:
+            if not handle_errors:
                 raise e
 
             # TODO: check each validation error and classify them to value errors or
@@ -225,8 +268,87 @@ class ModelBoundTOML(Generic[M]):
             #
             # everything else -> tomlantic.TOMLValueError
 
-            for errors in e.errors():
-                ...
+            errors: List[TOMLBaseSingleError] = []
+
+            error_messages: List[str] = []
+
+            for pydantic_error in e.errors():
+                loc: Tuple[str, ...] = ("unknown",)
+
+                try:
+                    loc = tuple(
+                        validate_homogeneous_collection(pydantic_error["loc"], str)
+                    )
+
+                except Exception:
+                    pass
+
+                if pydantic_error["type"] is None:
+                    continue
+
+                elif pydantic_error["type"] == "missing":
+                    errors.append(
+                        TOMLMissingError(
+                            str(
+                                pydantic_error.get(
+                                    "msg",
+                                    "the required field is missing from the document",
+                                )
+                            ),
+                            loc=loc,
+                            pydantic_error=pydantic_error,
+                        )
+                    )
+
+                elif pydantic_error["type"] in ("frozen_field", "frozen_instance"):
+                    errors.append(
+                        TOMLFrozenError(
+                            str(
+                                pydantic_error.get(
+                                    "msg",
+                                    "attempting to override a field that is frozen or an instance that is frozen",
+                                )
+                            ),
+                            loc=loc,
+                            pydantic_error=pydantic_error,
+                        )
+                    )
+
+                elif pydantic_error["type"] in ("no_such_attribute", "extra_forbidden"):
+                    errors.append(
+                        TOMLAttributeError(
+                            str(
+                                pydantic_error.get(
+                                    "msg",
+                                    "the field does not exist or is an extra field not in the model",
+                                )
+                            ),
+                            loc=loc,
+                            pydantic_error=pydantic_error,
+                        )
+                    )
+
+                else:
+                    errors.append(
+                        TOMLValueError(
+                            str(pydantic_error.get("msg", "unknown value error")),
+                            loc=loc,
+                            pydantic_error=pydantic_error,
+                        )
+                    )
+
+            for tomalntic_error in errors:
+                error_messages.append(
+                    f'Field "{".".join(tomalntic_error.loc)}": {str(tomalntic_error)} '
+                    f'({tomalntic_error.pydantic_error["type"]})'
+                )
+
+            raise TOMLValidationError(
+                f"{len(errors)} {'error' if len(errors) == 1 else 'errors'} "
+                "occurred while validating the TOML document:\n"
+                + "\n".join([f"  {e}" for e in error_messages]),
+                errors=tuple(errors),
+            )
 
         self.__original_model = model.model_validate(
             document
