@@ -3,8 +3,7 @@
 > [!WARNING]  
 > tomlantic is at 0.1.0 and currently, only i use it myself. it isn't battle tested,
 > so issues may arise.  
-> currently unfinished: yet to implement human error handling when instantiating
-> `ModelBoundTOML`
+> if you're willing to run into potential bugs and issues, feel free to use it!
 
 marrying [pydantic](https://github.com/pydantic/pydantic) models and
 [tomlkit](https://github.com/sdispater/tomlkit) documents for data validated,
@@ -104,8 +103,12 @@ fields and/or the toml document itself:
 - [tomlantic.ModelBoundTOML](#class-tomlanticmodelboundtoml)
   - [tomlantic.ModelBoundTOML.model_dump_toml](#def-tomlanticmodelboundtomlmodel_dump_toml)
 - [tomlantic.TomlanticException](#class-tomlantictomlanticexception)
+- [tomlantic.TOMLBaseSingleError](#class-tomlantictomlbasesingleerror)
+- [tomlantic.TOMLAttributeError](#class-tomlantictomlattributeerror)
+- [tomlantic.TOMLFrozenError](#class-tomlantictomlfrozenerror)
 - [tomlantic.TOMLMissingError](#class-tomlantictomlmissingerror)
 - [tomlantic.TOMLValueError](#class-tomlantictomlvalueerror)
+- [tomlantic.TOMLValidationError](#class-tomlantictomlvalidationerror)
 - [tomlantic.validate_to_specific_type](#def-tomlanticvalidate_to_specific_type)
 - [tomlantic.validate_to_multiple_types](#def-tomlanticvalidate_to_multiple_types)
 - [tomlantic.validate_homogeneous_collection](#def-tomlanticvalidate_homogeneous_collection)
@@ -115,9 +118,9 @@ fields and/or the toml document itself:
 
 tomlantic's magical glue class for pydantic models and tomlkit documents
 
-will handle pydantic.ValidationErrors into more human-readable exceptions if
-`human_errors` is True, otherwise it will raise the original
-`pydantic.ValidationError`
+will handle pydantic.ValidationErrors into more toml-friendly error messages.  
+set `handle_errors` to `False` to raise the original
+[`pydantic.ValidationError`](https://docs.pydantic.dev/latest/api/pydantic_core/#pydantic_core.ValidationError)
 
 - attributes:
   - model: [`pydantic.BaseModel`](https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel)
@@ -128,11 +131,9 @@ will handle pydantic.ValidationErrors into more human-readable exceptions if
   - human_errors: `bool` = `False`
 
 - raises:
-  - `tomlantic.TOMLMissingError`  
-    if the document does not contain all the required fields/tables of the model
-  - `tomlantic.TOMLValueError`  
-    if an item in the document is invalid for its respective model field
-  - `pydantic.ValidationError`  
+  - [`tomlantic.TOMLValidationError`](#class-tomlantictomlvalidationerror)  
+    if the document does not validate with the model
+  - [`pydantic.ValidationError`](https://docs.pydantic.dev/latest/api/pydantic_core/#pydantic_core.ValidationError)  
     if the document does not validate with the model
 
 - methods:
@@ -165,12 +166,26 @@ method that dumps the model as a style-preserved `tomlkit.toml_document.TOMLDocu
 
 ### class tomlantic.TomlanticException
 
-base exception class for tomlantic
+base exception class for all tomlantic errors
 
 - signature:
 
   ```python
   class TomlanticException(Exception): ...
+  ```
+
+### class tomlantic.TOMLBaseSingleError
+
+base exception class for single errors, e.g. TOMLMissingError, TOMLValueError
+
+inherits [TomlanticException](#class-tomlantictomlanticexception)
+
+base exception class for all tomlantic errors
+
+- signature:
+
+  ```python
+  class TOMLBaseSingleError(TomlanticException): ...
   ```
 
 - attributes:
@@ -182,31 +197,75 @@ base exception class for tomlantic
     the original pydantic error, this is what you see in the list of errors when you
     handle a [`pydantic.ValidationError`](https://docs.pydantic.dev/latest/api/pydantic_core/#pydantic_core.ValidationError)
 
-### class tomlantic.TOMLMissingError
+### class tomlantic.TOMLAttributeError
 
-raised when a toml document does not contain all the required fields/tables of a model
+error raised when an field does not exist, or is an extra field not in the model and the
+model has forbidden extra fields
 
-inherits [TomlanticException](#class-tomlantictomlanticexception),
+inherits [TOMLBaseSingleError](#class-tomlantictomlbasesingleerror),
 go there for attributes
 
 - signature:
 
   ```python
-  class TOMLMissingError(TomlanticException): ...
+  class TOMLAttributeError(TOMLBaseSingleError): ...
+  ```
+
+### class tomlantic.TOMLFrozenError
+
+error raised when assigning a value to a frozen field or value
+
+inherits [TOMLBaseSingleError](#class-tomlantictomlbasesingleerror),
+go there for attributes
+
+- signature:
+
+  ```python
+  class TOMLFrozenError(TOMLBaseSingleError): ...
+  ```
+
+### class tomlantic.TOMLMissingError
+
+raised when a toml document does not contain all the required fields/tables of a model
+
+inherits [TOMLBaseSingleError](#class-tomlantictomlanticexception),
+go there for attributes
+
+- signature:
+
+  ```python
+  class TOMLMissingError(TOMLBaseSingleError): ...
   ```
 
 ### class tomlantic.TOMLValueError
 
 raised when an item in a toml document is invalid for its respective model field
 
-inherits [TomlanticException](#class-tomlantictomlanticexception),
+inherits [TOMLBaseSingleError](#class-tomlantictomlanticexception),
 go there for attributes
 
 - signature:
 
   ```python
-  class TOMLValueError(TomlanticException): ...
+  class TOMLValueError(TOMLBaseSingleError): ...
   ```
+
+### class tomlantic.TOMLValidationError
+
+a toml-friendly version of pydantic.ValidationError, raised when instantiating
+[tomlantic.ModelBoundTOML](#class-tomlanticmodelboundtoml)
+
+inherits [TomlanticException](#class-tomlantictomlanticexception)
+
+- signature:
+
+  ```python
+  class TOMLValidationError(TomlanticException): ...
+  ```
+
+- attributes:
+  - errors: `tuple[TOMLBaseSingleError, ...]`  
+    all validation errors raised when validating the toml document with the model
 
 ### def tomlantic.validate_to_specific_type()
 
