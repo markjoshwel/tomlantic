@@ -134,7 +134,7 @@ set `handle_errors` to `False` to raise the original
   - [`tomlantic.TOMLValidationError`](#class-tomlantictomlvalidationerror)  
     if the document does not validate with the model
   - [`pydantic.ValidationError`](https://docs.pydantic.dev/latest/api/pydantic_core/#pydantic_core.ValidationError)  
-    if the document does not validate with the model
+    if the document does not validate with the model and `handle_errors` is `False`
 
 - methods:
   - [model_dump_toml()](#def-tomlanticmodelboundtomlmodel_dump_toml)
@@ -144,7 +144,7 @@ set `handle_errors` to `False` to raise the original
   ```python
   # instantiate the class
   toml = ModelBoundTOML(YourModel, tomlkit.parse(...))
-  # access your model with ModelBoundTOML.model
+  # access your model with .model
   toml.model.message = "blowy red vixens fight for a quick jump"
   # dump the model back to a toml document
   toml_document = toml.model_dump_toml()

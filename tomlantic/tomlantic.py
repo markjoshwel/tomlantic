@@ -218,7 +218,7 @@ class ModelBoundTOML(Generic[M]):
         ```py
         # instantiate the class
         toml = ModelBoundTOML(YourModel, tomlkit.parse(...))
-        # access your model with ModelBoundTOML.model
+        # access your model with .model
         toml.model.message = "blowy red vixens fight for a quick jump"
         # dump the model back to a toml document
         toml_document = toml.model_dump_toml()
@@ -248,9 +248,8 @@ class ModelBoundTOML(Generic[M]):
           - handle_errors: `bool` = False
 
         raises:
-          - `tomlantic.TOMLMissingError` if the document does not contain all the required fields/tables of the model
-          - `tomlantic.TOMLValueError`   if an item in the document is invalid for its respective model field
-          - `pydantic.ValidationError`   if the document does not validate with the model
+          - `tomlantic.TOMLValidationError` if the document does not validate with the model
+          - `pydantic.ValidationError`      if the document does not validate with the model and `handle_errors` is `False`
         """
         try:
             self.model = model.model_validate(document)
