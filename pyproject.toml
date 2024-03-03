@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tomlantic"
-version = "0.1.0"
+version = "0.1.1"
 description = "marrying pydantic models and tomlkit documents"
 authors = ["Mark Joshwel <mark@joshwel.co>"]
 license = "Unlicense"
