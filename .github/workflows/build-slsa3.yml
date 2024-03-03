@@ -3,9 +3,8 @@ name: build with slsa 3 compliance
 on:
   workflow_dispatch:
   push:
-    paths:
-      - '*.py'
-      - '**.py'
+    branches:
+      - main
 
 jobs:
   build:
