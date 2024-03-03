@@ -29,9 +29,6 @@ jobs:
         id: build
         run: devbox run poetry build
 
-      - name: duplicate non-versioned wheel
-        run: cp dist/surplus-*.whl dist/surplus-latest-py3-none-any.whl
-
       - name: generate provenance subjects
         id: hash
         run: |
@@ -46,10 +43,9 @@ jobs:
           files: |
             dist/*.whl
 
+      - run: devbox run poetry config pypi-token.pypi "${{ secrets.PYPI_TOKEN }}"
       - name: release to pypi
-        run: |
-          poetry config pypi-token.pypi "${{ secrets.PYPI_TOKEN }}"
-          poetry publish
+        run: devbox run poetry publish
 
       - uses: actions/upload-artifact@v4
         with:
