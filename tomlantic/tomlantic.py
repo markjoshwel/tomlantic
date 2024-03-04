@@ -231,6 +231,11 @@ class ModelBoundTOML(Generic[M]):
     __original_model: M
     __document: TOMLDocument
 
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(model={self.model.__repr__()})"
+
+
     def __init__(
         self,
         model: Type[M],

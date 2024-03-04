@@ -26,6 +26,8 @@ toml_doc = tomlkit.parse(
 # where tomlantic becomes handy
 toml = ModelBoundTOML(File, toml_doc)
 
+print(toml)
+
 # access the model with .model and change the model freely
 model: File = toml.model
 model.project.typechecked = True
