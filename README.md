@@ -1,7 +1,7 @@
 # tomlantic
 
 > [!WARNING]  
-> tomlantic is at 0.1.2 and currently, only i use it myself. it isn't battle tested,
+> tomlantic is at 0.1.3 and currently, only i use it myself. it isn't battle tested,
 > so issues may arise.  
 > if you're willing to run into potential bugs and issues, feel free to use it!
 
@@ -191,7 +191,10 @@ base exception class for all tomlantic errors
 - attributes:
   - loc: `tuple[str, ...]`  
     the location of the error in the toml document  
-    example: `('settings', 'name')`
+    example: `('settings', 'name') = settings.name`
+
+  - msg: `str`  
+    the error 'message' (if any)
 
   - pydantic_error: [`pydantic_core.ErrorDetails`](https://docs.pydantic.dev/latest/api/pydantic_core/#pydantic_core.ErrorDetails)  
     the original pydantic error, this is what you see in the list of errors when you

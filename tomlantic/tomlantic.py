@@ -144,9 +144,17 @@ class TomlanticException(Exception):
 
 
 class TOMLBaseSingleError(TomlanticException):
-    """base exception class for single errors, e.g. TOMLMissingError, TOMLValueError"""
+    """
+    base exception class for single errors, e.g. TOMLMissingError, TOMLValueError
+
+    attributes:
+      - loc:            `tuple[str]`
+      - msg:            `str`
+      - pydantic_error: `pydantic_core.ErrorDetails`
+    """
 
     loc: Tuple[str, ...]
+    msg: str = ""
     pydantic_error: ErrorDetails
 
     def __init__(
@@ -158,6 +166,7 @@ class TOMLBaseSingleError(TomlanticException):
         self.loc = loc
         self.pydantic_error = pydantic_error
         super().__init__(*args)
+        self.msg = str(self)
 
 
 class TOMLMissingError(TOMLBaseSingleError):
