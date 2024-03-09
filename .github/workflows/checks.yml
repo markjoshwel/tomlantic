@@ -42,8 +42,14 @@ jobs:
       - name: install devbox  
         uses: jetpack-io/devbox-install-action@v0.8.0
 
-      - name: install dependencies
-        run: devbox run poetry install
+      # - name: install dependencies
+      #   run: devbox run poetry install
+
+      - name: use lowest pydantic and tomlkit versions
+        run: |
+          devbox run poetry run python use_lowest_versions.py
+          devbox run poetry lock
+          devbox run poetry install
 
       - name: run tests
         run: devbox run poetry run python test.py

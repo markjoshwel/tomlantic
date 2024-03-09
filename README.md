@@ -1,7 +1,7 @@
 # tomlantic
 
 > [!WARNING]  
-> tomlantic is at 0.1.3 and currently, only i use it myself. it isn't battle tested,
+> tomlantic is at 0.2.0 and currently, only i use it myself. it isn't battle tested,
 > so issues may arise.  
 > if you're willing to run into potential bugs and issues, feel free to use it!
 

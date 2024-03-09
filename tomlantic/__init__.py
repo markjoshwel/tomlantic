@@ -30,6 +30,7 @@ For more information, please refer to <http://unlicense.org/>
 """
 
 from .tomlantic import (
+    Difference,
     ModelBoundTOML,
     TomlanticException,
     TOMLAttributeError,
@@ -38,6 +39,8 @@ from .tomlantic import (
     TOMLMissingError,
     TOMLValidationError,
     TOMLValueError,
+    get_toml_field,
+    set_toml_field,
     validate_heterogeneous_collection,
     validate_homogeneous_collection,
     validate_to_multiple_types,

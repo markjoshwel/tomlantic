@@ -30,7 +30,19 @@ For more information, please refer to <http://unlicense.org/>
 """
 
 from copy import deepcopy
-from typing import Any, Collection, Generic, List, Tuple, Type, TypeVar, Union
+from typing import (
+    Any,
+    Collection,
+    Generic,
+    List,
+    NamedTuple,
+    NoReturn,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 from pydantic import BaseModel, ValidationError
 from pydantic_core import ErrorDetails
@@ -111,7 +123,8 @@ def validate_homogeneous_collection(v: Any, t: Type[T]) -> Collection[T]:
 
 
 def validate_heterogeneous_collection(
-    v: Collection[Any], t: Tuple[Type[Ts], ...]
+    v: Collection[Any],
+    t: Tuple[Type[Ts], ...],
 ) -> Collection[Ts]:
     """
     validate values of a collection to a specific type or a tuple of types
@@ -135,6 +148,77 @@ def validate_heterogeneous_collection(
             )
 
     return v
+
+
+def get_toml_field(
+    document: TOMLDocument,
+    location: Union[str, Tuple[str, ...]],
+    default: Any = None,
+) -> Any:
+    """
+    safely retrieve a field by it's location. not recommended for general use due to
+    a lack of type information, but useful when accessing fields programatically
+
+    arguments:
+        - location: `str | tuple[str, ...]`
+        - default: `Any` = `None`
+
+    returns the field if it exists, otherwise `default`
+    """
+
+    if isinstance(location, str):
+        location = tuple(location.split("."))
+
+    field = document
+
+    for loc in location:
+        field = field.get(loc, default)
+        if field == default:
+            return default
+
+    return field
+
+
+def set_toml_field(
+    document: TOMLDocument, location: Union[str, Tuple[str, ...]], value: Any
+) -> None:
+    """
+    sets a field by it's location. not recommended for general use, but useful when
+    setting fields programatically
+
+    arguments:
+        - location: `str | tuple[str, ...]`
+        - value: `Any`
+
+    raises `KeyError` if the field does not exist, or a `LookupError` if attempting to
+    set a field in a non-table
+
+    if handling for errors, handle `KeyError` before `LookupError` as `LookupError` is
+    the base class for `KeyError`
+    """
+
+    if isinstance(location, str):
+        location = tuple(location.split("."))
+
+    field: Union[tomlitems.Table, TOMLDocument] = document
+    current_loc: List[str] = []
+
+    for loc in location[:-1]:
+        current_loc.append(loc)
+
+        if loc not in field:
+            field[loc] = table()
+        target = field[loc]
+
+        if not isinstance(target, (tomlitems.Table, TOMLDocument)):
+            raise LookupError(
+                f"attempting to set a field inside a non-table "
+                f"at location '{'.'.join(current_loc)}'"
+            )
+
+        field = target
+
+    field[location[-1]] = value
 
 
 class TomlanticException(Exception):
@@ -213,6 +297,124 @@ class TOMLValidationError(TomlanticException):
         super().__init__(*args)
 
 
+class Difference(NamedTuple):
+    """
+    a named tuple for the differences between an outgoing tomlantic.ModelBoundTOML and a
+    tomlkit.TOMLDocument
+
+    attributes:
+      - incoming_changed_fields: `tuple[str, ...]`
+      - outgoing_changed_fields: `tuple[str, ...]`
+    """
+
+    incoming_changed_fields: Tuple[str, ...]
+    outgoing_changed_fields: Tuple[str, ...]
+
+
+def handle_validation_error(
+    e: ValidationError,
+    location_override: Optional[Tuple[str, ...]] = None,
+) -> NoReturn:
+    """
+    internal function to handle pydantic validation errors into tomlantic errors
+
+    location_overrides is only to be used for `ModelBoundTOML.set_field`
+    """
+
+    # TODO: check each validation error and classify them to value errors or
+    #       other types of errors
+    #       https://docs.pydantic.dev/dev/errors/validation_errors/
+    #
+    # special cases:
+    #   missing -> tomlantic.TOMLMissingError
+    #
+    # everything else -> tomlantic.TOMLValueError
+
+    errors: List[TOMLBaseSingleError] = []
+
+    error_messages: List[str] = []
+
+    for pydantic_error in e.errors():
+        loc: Tuple[str, ...] = ("unknown",)
+
+        try:
+            loc = (
+                tuple(validate_homogeneous_collection(pydantic_error["loc"], str))
+                if (location_override is None)
+                else location_override
+            )
+
+        except Exception:
+            pass
+
+        if pydantic_error["type"] is None:
+            continue
+
+        elif pydantic_error["type"] == "missing":
+            errors.append(
+                TOMLMissingError(
+                    str(
+                        pydantic_error.get(
+                            "msg",
+                            "the required field is missing from the document",
+                        )
+                    ),
+                    loc=loc,
+                    pydantic_error=pydantic_error,
+                )
+            )
+
+        elif pydantic_error["type"] in ("frozen_field", "frozen_instance"):
+            errors.append(
+                TOMLFrozenError(
+                    str(
+                        pydantic_error.get(
+                            "msg",
+                            "attempting to override a field that is frozen or an instance that is frozen",
+                        )
+                    ),
+                    loc=loc,
+                    pydantic_error=pydantic_error,
+                )
+            )
+
+        elif pydantic_error["type"] in ("no_such_attribute", "extra_forbidden"):
+            errors.append(
+                TOMLAttributeError(
+                    str(
+                        pydantic_error.get(
+                            "msg",
+                            "the field does not exist or is an extra field not in the model",
+                        )
+                    ),
+                    loc=loc,
+                    pydantic_error=pydantic_error,
+                )
+            )
+
+        else:
+            errors.append(
+                TOMLValueError(
+                    str(pydantic_error.get("msg", "unknown value error")),
+                    loc=loc,
+                    pydantic_error=pydantic_error,
+                )
+            )
+
+    for tomalntic_error in errors:
+        error_messages.append(
+            f'Field "{".".join(tomalntic_error.loc)}": {str(tomalntic_error)} '
+            f'({tomalntic_error.pydantic_error["type"]})'
+        )
+
+    raise TOMLValidationError(
+        f"{len(errors)} {'error' if len(errors) == 1 else 'errors'} "
+        "occurred while validating the TOML document:\n"
+        + "\n".join([f"  {e}" for e in error_messages]),
+        errors=tuple(errors),
+    )
+
+
 M = TypeVar("M", bound=BaseModel)
 
 
@@ -251,8 +453,8 @@ class ModelBoundTOML(Generic[M]):
     ) -> None:
         """instantiates the class with a `BaseModel` and a `TOMLDocument`
 
-        will handle pydantic.ValidationErrors into more toml-friendly error messages.
-        set `handle_errors` to `False` to raise the original pydantic.ValidationError
+        will handle `pydantic.ValidationError` into more toml-friendly error messages.
+        set `handle_errors` to `False` to raise the original `pydantic.ValidationError`
 
         arguments:
           - model:         `pydantic.BaseModel`
@@ -266,100 +468,11 @@ class ModelBoundTOML(Generic[M]):
         try:
             self.model = model.model_validate(document)
 
-        except ValidationError as e:
+        except ValidationError as err:
             if not handle_errors:
-                raise e
+                raise err
 
-            # TODO: check each validation error and classify them to value errors or
-            #       other types of errors
-            #       https://docs.pydantic.dev/dev/errors/validation_errors/
-            #
-            # special cases:
-            #   missing -> tomlantic.TOMLMissingError
-            #
-            # everything else -> tomlantic.TOMLValueError
-
-            errors: List[TOMLBaseSingleError] = []
-
-            error_messages: List[str] = []
-
-            for pydantic_error in e.errors():
-                loc: Tuple[str, ...] = ("unknown",)
-
-                try:
-                    loc = tuple(
-                        validate_homogeneous_collection(pydantic_error["loc"], str)
-                    )
-
-                except Exception:
-                    pass
-
-                if pydantic_error["type"] is None:
-                    continue
-
-                elif pydantic_error["type"] == "missing":
-                    errors.append(
-                        TOMLMissingError(
-                            str(
-                                pydantic_error.get(
-                                    "msg",
-                                    "the required field is missing from the document",
-                                )
-                            ),
-                            loc=loc,
-                            pydantic_error=pydantic_error,
-                        )
-                    )
-
-                elif pydantic_error["type"] in ("frozen_field", "frozen_instance"):
-                    errors.append(
-                        TOMLFrozenError(
-                            str(
-                                pydantic_error.get(
-                                    "msg",
-                                    "attempting to override a field that is frozen or an instance that is frozen",
-                                )
-                            ),
-                            loc=loc,
-                            pydantic_error=pydantic_error,
-                        )
-                    )
-
-                elif pydantic_error["type"] in ("no_such_attribute", "extra_forbidden"):
-                    errors.append(
-                        TOMLAttributeError(
-                            str(
-                                pydantic_error.get(
-                                    "msg",
-                                    "the field does not exist or is an extra field not in the model",
-                                )
-                            ),
-                            loc=loc,
-                            pydantic_error=pydantic_error,
-                        )
-                    )
-
-                else:
-                    errors.append(
-                        TOMLValueError(
-                            str(pydantic_error.get("msg", "unknown value error")),
-                            loc=loc,
-                            pydantic_error=pydantic_error,
-                        )
-                    )
-
-            for tomalntic_error in errors:
-                error_messages.append(
-                    f'Field "{".".join(tomalntic_error.loc)}": {str(tomalntic_error)} '
-                    f'({tomalntic_error.pydantic_error["type"]})'
-                )
-
-            raise TOMLValidationError(
-                f"{len(errors)} {'error' if len(errors) == 1 else 'errors'} "
-                "occurred while validating the TOML document:\n"
-                + "\n".join([f"  {e}" for e in error_messages]),
-                errors=tuple(errors),
-            )
+            handle_validation_error(err)
 
         self.__original_model = model.model_validate(
             document
@@ -406,3 +519,193 @@ class ModelBoundTOML(Generic[M]):
 
         apply_model_differences(self.__original_model, self.model, document)
         return document
+
+    def set_field(
+        self,
+        location: Union[str, Tuple[str, ...]],
+        value: Any,
+        handle_errors: bool = True,
+    ) -> None:
+        """
+        sets a field by it's location. not recommended for general use due to a lack of
+        type safety, but useful when setting fields programatically
+
+        will handle `pydantic.ValidationError` into more toml-friendly error messages.
+        set `handle_errors` to `False` to raise the original `pydantic.ValidationError`
+
+        arguments:
+          - location:      `str | tuple[str, ...]`
+          - value:         `Any`
+          - handle_errors: `bool` = True
+
+        raises:
+          - `AttributeError`                if the field does not exist
+          - `tomlantic.TOMLValidationError` if the document does not validate with the model
+          - `pydantic.ValidationError`      if the document does not validate with the model and `handle_errors` is `False`
+        """
+
+        if isinstance(location, str):
+            location = tuple(location.split("."))
+
+        field = self.model
+
+        for loc in location[:-1]:
+            field = getattr(field, loc)
+
+        try:
+            setattr(field, location[-1], value)
+
+        except ValidationError as err:
+            if not handle_errors:
+                raise err
+
+            handle_validation_error(e=err, location_override=location)
+
+    def get_field(
+        self, location: Union[str, Tuple[str, ...]], default: Any = None
+    ) -> Any:
+        """
+        safely retrieve a field by it's location. not recommended for general use due to
+        a lack of type information, but useful when accessing fields programatically
+
+        arguments:
+          - location: `str | tuple[str, ...]`
+          - default: `Any` = `None`
+
+        returns the field if it exists, otherwise `default`
+        """
+
+        if isinstance(location, str):
+            location = tuple(location.split("."))
+
+        field = self.model
+
+        try:
+            for loc in location:
+                field = getattr(field, loc)
+            return field
+
+        except AttributeError:
+            return default
+
+    def difference_between_document(self, incoming_document: TOMLDocument) -> Difference:
+        """
+        returns a tomlantic.Difference object of the incoming and outgoing fields that
+        were changed between the model and the comparison_document
+
+        arguments:
+          - incoming_document: `tomlkit.TOMLDocument`
+
+        returns a tomlantic.Difference namedtuple object
+        """
+
+        incoming_changed_fields: List[str] = []
+        outgoing_changed_fields: List[str] = []
+
+        def find_differences(
+            location: str,
+            outgoing_model: BaseModel,
+            _incoming_document: Union[TOMLDocument, tomlitems.Table],
+        ) -> None:
+            # go through self.model (outgoing) and compare with incoming_document
+            # recurse if the value is a BaseModel when iterating through the model
+
+            incoming_document = deepcopy(_incoming_document)
+
+            for outgoing_key, outgoing_value in outgoing_model:
+                if isinstance(outgoing_value, BaseModel):
+                    if (
+                        # check if table exists
+                        # if it doesn't, it is a difference
+                        outgoing_key
+                        not in incoming_document
+                    ):
+                        # if the incoming toml field doesnt exist, then it is the model
+                        # that was changed
+                        outgoing_changed_fields.append(f"{location}.{outgoing_key}")
+                        continue
+
+                    incoming_value = incoming_document[outgoing_key]
+
+                    if not isinstance(incoming_value, (TOMLDocument, tomlitems.Table)):
+                        # if the model is a BaseModel but the document is not a table,
+                        # the difference is incoming because we assume the model is the
+                        # source of truth
+                        # as such if the incoming toml field isnt a table, then it was
+                        # changed
+                        incoming_changed_fields.append(f"{location}.{outgoing_key}")
+                        continue
+
+                    find_differences(
+                        location=f"{location}.{outgoing_key}",
+                        outgoing_model=outgoing_value,
+                        _incoming_document=incoming_value,
+                    )
+
+                    continue
+
+                # if the field is not a BaseModel, then we can compare the field directly
+                if outgoing_key not in incoming_document:
+                    # if the incoming toml field doesnt exist, then it is the model
+                    # that was changed
+                    outgoing_changed_fields.append(f"{location}.{outgoing_key}")
+                    continue
+
+                incoming_value = incoming_document[outgoing_key]
+
+                if outgoing_value != incoming_value:
+                    # if both incoming and outgoing values are different, then both
+                    # were changed
+                    incoming_changed_fields.append(f"{location}.{outgoing_key}")
+                    outgoing_changed_fields.append(f"{location}.{outgoing_key}")
+
+        find_differences(
+            location="",
+            outgoing_model=self.model,
+            _incoming_document=incoming_document,
+        )
+
+        return Difference(
+            incoming_changed_fields=tuple(
+                [f.strip(".") for f in incoming_changed_fields]
+            ),
+            outgoing_changed_fields=tuple(
+                [f.strip(".") for f in outgoing_changed_fields]
+            ),
+        )
+
+    def load_from_document(
+        self, incoming_document: TOMLDocument, selective: bool = True
+    ) -> None:
+        """
+        override fields with those from a new document
+
+        arguments:
+          - incoming_document: `tomlkit.TOMLDocument`
+          - selective: `bool` = `False`
+
+        by default, this method selectively overrides fields. so fields that have been
+        changed in the model will NOT be overriden by the incoming document
+
+        pass `False` to the `selective` argument to override all fields in the model with
+        the fields of the incoming document
+
+        no changes are applied until the new document passes all model validations
+        """
+        differences = self.difference_between_document(incoming_document)
+
+        for incoming_change_location in differences.incoming_changed_fields:
+            if selective and (
+                incoming_change_location in differences.outgoing_changed_fields
+            ):
+                continue
+
+            if self.get_field(incoming_change_location) is not None:
+                incoming_change_value = get_toml_field(
+                    document=incoming_document,
+                    location=incoming_change_location,
+                )
+                self.set_field(
+                    location=incoming_change_location,
+                    value=incoming_change_value,
+                )
