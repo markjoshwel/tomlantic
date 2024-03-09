@@ -180,7 +180,9 @@ def get_toml_field(
 
 
 def set_toml_field(
-    document: TOMLDocument, location: Union[str, Tuple[str, ...]], value: Any
+    document: TOMLDocument,
+    location: Union[str, Tuple[str, ...]],
+    value: Any,
 ) -> None:
     """
     sets a field by it's location. not recommended for general use, but useful when
@@ -408,7 +410,9 @@ M = TypeVar("M", bound=BaseModel)
 
 
 def _get_model_field(
-    model: M, location: Union[str, Tuple[str, ...]], default: Any = None
+    model: M,
+    location: Union[str, Tuple[str, ...]],
+    default: Any = None,
 ) -> Any:
     """
     INTERNAL FUNCTION
@@ -581,7 +585,9 @@ class ModelBoundTOML(Generic[M]):
             handle_validation_error(e=err, location_override=location)
 
     def get_field(
-        self, location: Union[str, Tuple[str, ...]], default: Any = None
+        self,
+        location: Union[str, Tuple[str, ...]],
+        default: Any = None,
     ) -> Any:
         """
         safely retrieve a field by it's location. not recommended for general use due to
@@ -681,7 +687,9 @@ class ModelBoundTOML(Generic[M]):
         )
 
     def load_from_document(
-        self, incoming_document: TOMLDocument, selective: bool = True
+        self,
+        incoming_document: TOMLDocument,
+        selective: bool = True,
     ) -> None:
         """
         override fields with those from a new document
