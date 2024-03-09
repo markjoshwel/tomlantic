@@ -47,7 +47,7 @@ jobs:
 
       - name: use lowest pydantic and tomlkit versions
         run: |
-          devbox run poetry run python use_lowest_versions.py
+          devbox run poetry run python use_lowest_versions.py > pyproject.toml
           devbox run poetry lock
           devbox run poetry install
 
