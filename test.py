@@ -78,7 +78,7 @@ except:
 else:
     assert "set_toml_field should have failed here"
 
-# new in 0.2.0: 
+# new in 0.2.0:
 
 # 0.1.0: dump the model back to a toml document
 new_toml_doc = toml.model_dump_toml()
