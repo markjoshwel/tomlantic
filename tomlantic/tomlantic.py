@@ -316,22 +316,11 @@ def handle_validation_error(
     location_override: Optional[Tuple[str, ...]] = None,
 ) -> NoReturn:
     """
-    internal function to handle pydantic validation errors into tomlantic errors
+    INTERNAL FUNCTION to handle pydantic validation errors into tomlantic errors
 
     location_overrides is only to be used for `ModelBoundTOML.set_field`
     """
-
-    # TODO: check each validation error and classify them to value errors or
-    #       other types of errors
-    #       https://docs.pydantic.dev/dev/errors/validation_errors/
-    #
-    # special cases:
-    #   missing -> tomlantic.TOMLMissingError
-    #
-    # everything else -> tomlantic.TOMLValueError
-
     errors: List[TOMLBaseSingleError] = []
-
     error_messages: List[str] = []
 
     for pydantic_error in e.errors():
@@ -416,6 +405,36 @@ def handle_validation_error(
 
 
 M = TypeVar("M", bound=BaseModel)
+
+
+def _get_model_field(
+    model: M, location: Union[str, Tuple[str, ...]], default: Any = None
+) -> Any:
+    """
+    INTERNAL FUNCTION
+
+    safely retrieve a field by it's location. not recommended for general use due to
+    a lack of type information, but useful when accessing fields programatically
+
+    arguments:
+        - location: `str | tuple[str, ...]`
+        - default: `Any` = `None`
+
+    returns the field if it exists, otherwise `default`
+    """
+
+    if isinstance(location, str):
+        location = tuple(location.split("."))
+
+    field = model
+
+    try:
+        for loc in location:
+            field = getattr(field, loc)
+        return field
+
+    except AttributeError:
+        return default
 
 
 class ModelBoundTOML(Generic[M]):
@@ -575,18 +594,7 @@ class ModelBoundTOML(Generic[M]):
         returns the field if it exists, otherwise `default`
         """
 
-        if isinstance(location, str):
-            location = tuple(location.split("."))
-
-        field = self.model
-
-        try:
-            for loc in location:
-                field = getattr(field, loc)
-            return field
-
-        except AttributeError:
-            return default
+        return _get_model_field(model=self.model, location=location, default=default)
 
     def difference_between_document(self, incoming_document: TOMLDocument) -> Difference:
         """
@@ -649,15 +657,13 @@ class ModelBoundTOML(Generic[M]):
                     # if the incoming toml field doesnt exist, then it is the model
                     # that was changed
                     outgoing_changed_fields.append(f"{location}.{outgoing_key}")
-                    continue
 
-                incoming_value = incoming_document[outgoing_key]
+                else:
+                    incoming_value = incoming_document[outgoing_key]
 
-                if outgoing_value != incoming_value:
-                    # if both incoming and outgoing values are different, then both
-                    # were changed
-                    incoming_changed_fields.append(f"{location}.{outgoing_key}")
-                    outgoing_changed_fields.append(f"{location}.{outgoing_key}")
+                    if outgoing_value != incoming_value:
+                        incoming_changed_fields.append(f"{location}.{outgoing_key}")
+                        # outgoing_changed_fields.append(f"{location}.{outgoing_key}")
 
         find_differences(
             location="",
@@ -687,16 +693,26 @@ class ModelBoundTOML(Generic[M]):
         by default, this method selectively overrides fields. so fields that have been
         changed in the model will NOT be overriden by the incoming document
 
-        pass `False` to the `selective` argument to override all fields in the model with
+        pass `False` to the `selective` argument to override ALL fields in the model with
         the fields of the incoming document
 
         no changes are applied until the new document passes all model validations
         """
         differences = self.difference_between_document(incoming_document)
 
+        # new model so no changes are applied until the new model passes all validations
+        new_model = deepcopy(self)
+
         for incoming_change_location in differences.incoming_changed_fields:
-            if selective and (
-                incoming_change_location in differences.outgoing_changed_fields
+            if selective and any(
+                [
+                    incoming_change_location in differences.outgoing_changed_fields,
+                    # compare for field changes made since class instantiation
+                    self.get_field(incoming_change_location)
+                    != _get_model_field(
+                        model=self.__original_model, location=incoming_change_location
+                    ),
+                ]
             ):
                 continue
 
@@ -705,7 +721,9 @@ class ModelBoundTOML(Generic[M]):
                     document=incoming_document,
                     location=incoming_change_location,
                 )
-                self.set_field(
+                new_model.set_field(
                     location=incoming_change_location,
                     value=incoming_change_value,
                 )
+
+        self.model = new_model.model
