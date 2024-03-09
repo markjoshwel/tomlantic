@@ -13,4 +13,4 @@ for line in pyproj.splitlines():
         stderr.write(f"-> {replacing_line}\n")
         pyproj = pyproj.replace(line, replacing_line)
 
-print(pyproj)
+Path(__file__).parent.joinpath("pyproject.toml").write_text(pyproj, "utf-8")
