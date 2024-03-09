@@ -156,8 +156,9 @@ def get_toml_field(
     default: Any = None,
 ) -> Any:
     """
-    safely retrieve a field by it's location. not recommended for general use due to
-    a lack of type information, but useful when accessing fields programatically
+    safely retrieve a toml documents field by it's location. not recommended for general
+    use due to a lack of type information, but useful when accessing fields
+    programatically
 
     arguments:
         - location: `str | tuple[str, ...]`
@@ -185,8 +186,8 @@ def set_toml_field(
     value: Any,
 ) -> None:
     """
-    sets a field by it's location. not recommended for general use, but useful when
-    setting fields programatically
+    sets a toml documents field by it's location. not recommended for general use, but
+    useful when setting fields programatically
 
     arguments:
         - location: `str | tuple[str, ...]`
@@ -448,6 +449,13 @@ class ModelBoundTOML(Generic[M]):
     attributes:
       - model: BaseModel
 
+    methods:
+      - model_dump_toml
+      - get_field
+      - set_field
+      - difference_between_document
+      - load_from_document
+
     usage:
         ```py
         # instantiate the class
@@ -704,7 +712,7 @@ class ModelBoundTOML(Generic[M]):
         pass `False` to the `selective` argument to override ALL fields in the model with
         the fields of the incoming document
 
-        no changes are applied until the new document passes all model validations
+        no changes are applied until the incoming document passes all model validations
         """
         differences = self.difference_between_document(incoming_document)
 

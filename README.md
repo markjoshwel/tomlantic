@@ -101,7 +101,14 @@ fields and/or the toml document itself:
 ## api reference
 
 - [tomlantic.ModelBoundTOML](#class-tomlanticmodelboundtoml)
-  - [tomlantic.ModelBoundTOML.model_dump_toml](#def-tomlanticmodelboundtomlmodel_dump_toml)
+  - [model_dump_toml](#def-tomlanticmodelboundtomlmodel_dump_toml)
+  - [get_field](#def-tomlanticmodelboundtomlget_field)
+  - [set_field](#def-tomlanticmodelboundtomlset_field)
+  - [difference_between_document](#def-tomlanticmodelboundtomldifference_between_document)
+  - [load_from_document](#def-tomlanticmodelboundtomlload_from_document)
+- [tomlantic.Difference](#class-tomlanticdifference)
+- [tomlantic.get_toml_field](#def-tomlanticget_toml_field)
+- [tomlantic.set_toml_field](#def-tomlanticset_toml_field)
 - [tomlantic.TomlanticException](#class-tomlantictomlanticexception)
 - [tomlantic.TOMLBaseSingleError](#class-tomlantictomlbasesingleerror)
 - [tomlantic.TOMLAttributeError](#class-tomlantictomlattributeerror)
@@ -127,7 +134,7 @@ set `handle_errors` to `False` to raise the original
 
 - initialisation arguments:
   - model: [`pydantic.BaseModel`](https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel)
-  - toml: [`tomlkit.toml_document.TOMLDocument`](https://tomlkit.readthedocs.io/en/latest/api/#module-tomlkit.toml_document)
+  - toml: [`tomlkit.TOMLDocument`](https://tomlkit.readthedocs.io/en/latest/api/#module-tomlkit.toml_document)
   - human_errors: `bool` = `False`
 
 - raises:
@@ -154,7 +161,7 @@ set `handle_errors` to `False` to raise the original
 
 ### def tomlantic.ModelBoundTOML.model_dump_toml()
 
-method that dumps the model as a style-preserved `tomlkit.toml_document.TOMLDocument`
+method that dumps the model as a style-preserved `tomlkit.TOMLDocument`
 
 - signature:
 
@@ -162,7 +169,163 @@ method that dumps the model as a style-preserved `tomlkit.toml_document.TOMLDocu
   def model_dump_toml(self) -> TOMLDocument:
   ```
 
-- returns [`tomlkit.toml_document.TOMLDocument`](https://tomlkit.readthedocs.io/en/latest/api/#module-tomlkit.toml_document)
+- returns [`tomlkit.TOMLDocument`](https://tomlkit.readthedocs.io/en/latest/api/#module-tomlkit.toml_document)
+
+### def tomlantic.ModelBoundTOML.get_field()
+
+safely retrieve a field by it's location. not recommended for general use due to
+a lack of type information, but useful when accessing fields programatically
+
+- signature:
+
+  ```python
+  def get_field(
+      self,
+      location: Union[str, Tuple[str, ...]],
+      default: Any = None,
+  ) -> Any: ...
+  ```
+
+- arguments:
+  - location: `Union[str, Tuple[str, ...]]`
+  - default: `Any` = `None`
+
+- returns the field if it exists, otherwise `default`
+
+### def tomlantic.ModelBoundTOML.set_field()
+
+sets a field by it's location. not recommended for general use due to a lack of
+type safety, but useful when setting fields programatically
+
+will handle `pydantic.ValidationError` into more toml-friendly error messages.
+set `handle_errors` to `False` to raise the original `pydantic.ValidationError`
+
+- signature:
+
+  ```python
+  def set_field(
+      self,
+      location: Union[str, Tuple[str, ...]],
+      value: Any,
+      handle_errors: bool = True,
+  ) -> None: ...
+  ```
+
+- arguments:
+  - location:      `Union[str, Tuple[str, ...]]`
+  - value:         `Any`
+  - handle_errors: `bool` = True
+
+- raises:
+  - `AttributeError` if the field does not exist
+  - [`tomlantic.TOMLValidationError`](#class-tomlantictomlvalidationerror) if the document does not validate with the model
+  - [`pydantic.ValidationError`](https://docs.pydantic.dev/latest/api/pydantic_core/#pydantic_core.ValidationError) if the document does not validate with the model and `handle_errors` is `False`
+
+### def tomlantic.ModelBoundTOML.difference_between_document()
+
+returns a tomlantic.Difference object of the incoming and outgoing fields that
+were changed between the model and the comparison_document
+
+- signature:
+
+  ```python
+  def difference_between_document(
+      self,
+      incoming_document: TOMLDocument
+  ) -> Difference: ...
+  ```
+
+- arguments:
+  - incoming_document: [`tomlkit.TOMLDocument`](https://tomlkit.readthedocs.io/en/latest/api/#module-tomlkit.toml_document)
+
+- returns [`tomlantic.Difference`](#class-tomlanticdifference)
+
+### def tomlantic.ModelBoundTOML.load_from_document()
+
+override fields with those from a new document
+
+by default, this method selectively overrides fields. so fields that have been
+changed in the model will NOT be overriden by the incoming document
+
+pass `False` to the `selective` argument to override ALL fields in the model with
+the fields of the incoming document
+
+no changes are applied until the incoming document passes all model validations
+
+- signature:
+
+  ```python
+  def load_from_document(
+      self,
+      incoming_document: TOMLDocument,
+      selective: bool = True,
+  ) -> None:
+  ```
+
+- arguments:
+  - incoming_document: [`tomlkit.TOMLDocument`](https://tomlkit.readthedocs.io/en/latest/api/#module-tomlkit.toml_document)
+  - selective: `bool` = `False`
+
+### class tomlantic.Difference
+
+a named tuple for the differences between an outgoing tomlantic.ModelBoundTOML and a
+tomlkit.TOMLDocument
+
+- signature:
+
+  ```python
+  class Difference(NamedTuple): ...
+  ```
+
+- attributes:
+  - incoming_changed_fields: `tuple[str, ...]`
+  - outgoing_changed_fields: `tuple[str, ...]`
+
+### def tomlantic.get_toml_field()
+
+safely retrieve a field by it's location. not recommended for general use due to
+a lack of type information, but useful when accessing fields programatically
+
+- signature:
+
+  ```python
+  def get_toml_field(
+      document: TOMLDocument,
+      location: Union[str, Tuple[str, ...]],
+      default: Any = None,
+  ) -> Any:
+  ```
+
+- arguments:
+  - location: `Union[str, Tuple[str, ...]]`
+  - default: `Any` = `None`
+
+- returns the field if it exists, otherwise `default`
+
+### def tomlantic.set_toml_field()
+
+safely retrieve a toml documents field by it's location. not recommended for general
+use due to a lack of type information, but useful when accessing fields programatically
+
+raises `KeyError` if the field does not exist, or a `LookupError` if attempting to
+set a field in a non-table
+
+if handling for errors, handle `KeyError` before `LookupError` as `LookupError` is
+the base class for `KeyError`
+
+- signature:
+  
+  ```python
+  def set_toml_field(
+      document: TOMLDocument,
+      location: Union[str, Tuple[str, ...]],
+      value: Any,
+  ) -> None:
+  ```
+
+- arguments:
+  - location: `Union[str, Tuple[str, ...]]`
+  - value: `Any`
 
 ### class tomlantic.TomlanticException
 
