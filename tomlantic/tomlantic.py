@@ -161,8 +161,10 @@ def get_toml_field(
     programatically
 
     arguments:
+        - document: TOMLDocument
         - location: `str | tuple[str, ...]`
         - default: `Any` = `None`
+        
 
     returns the field if it exists, otherwise `default`
     """
