@@ -278,8 +278,8 @@ tomlkit.TOMLDocument
   ```
 
 - attributes:
-  - incoming_changed_fields: `tuple[str, ...]`
-  - outgoing_changed_fields: `tuple[str, ...]`
+  - incoming_changed_fields: `Tuple[str, ...]`
+  - outgoing_changed_fields: `Tuple[str, ...]`
 
 ### def tomlantic.get_toml_field()
 
@@ -337,6 +337,19 @@ base exception class for all tomlantic errors
   class TomlanticException(Exception): ...
   ```
 
+the hierarchy of exceptions that inherit this class are:
+
+```text
+TomlanticException
+├── TOMLValidationError
+└── TOMLBaseSingleError
+    ├── TOMLAttributeError
+    ├── TOMLFrozenError
+    ├── TOMLMissingError
+    ├── TOMLValueError
+    └── TOMLValidationError
+```
+
 ### class tomlantic.TOMLBaseSingleError
 
 base exception class for single errors, e.g. TOMLMissingError, TOMLValueError
@@ -352,7 +365,7 @@ base exception class for all tomlantic errors
   ```
 
 - attributes:
-  - loc: `tuple[str, ...]`  
+  - loc: `Tuple[str, ...]`  
     the location of the error in the toml document  
     example: `('settings', 'name') = settings.name`
 
@@ -430,7 +443,7 @@ inherits [TomlanticException](#class-tomlantictomlanticexception)
   ```
 
 - attributes:
-  - errors: `tuple[TOMLBaseSingleError, ...]`  
+  - errors: `Tuple[TOMLBaseSingleError, ...]`  
     all validation errors raised when validating the toml document with the model
 
 ### def tomlantic.validate_to_specific_type()
