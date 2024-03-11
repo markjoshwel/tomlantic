@@ -492,7 +492,7 @@ class ModelBoundTOML(Generic[M]):
 
         arguments:
           - model:         `pydantic.BaseModel`
-          - document:      `tomlkit.toml_document.TOMLDocument`
+          - document:      `tomlkit.TOMLDocument`
           - handle_errors: `bool` = False
 
         raises:
@@ -514,7 +514,7 @@ class ModelBoundTOML(Generic[M]):
         self.__document = document
 
     def model_dump_toml(self) -> TOMLDocument:
-        """dumps the model as a style-preserved `tomlkit.toml_document.TOMLDocument`"""
+        """dumps the model as a style-preserved `tomlkit.TOMLDocument`"""
         document = deepcopy(self.__document)
 
         # add values that were changed from when the model was instantiated
