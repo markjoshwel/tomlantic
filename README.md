@@ -297,6 +297,7 @@ a lack of type information, but useful when accessing fields programatically
   ```
 
 - arguments:
+  - document: `TOMLDocument`
   - location: `Union[str, Tuple[str, ...]]`
   - default: `Any` = `None`
 
@@ -323,7 +324,8 @@ the base class for `KeyError`
   ) -> None:
   ```
 
-- arguments:
+- arguments: 
+  - document: `TOMLDocument`
   - location: `Union[str, Tuple[str, ...]]`
   - value: `Any`
 
