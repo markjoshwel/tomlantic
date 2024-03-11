@@ -161,6 +161,7 @@ def get_toml_field(
     programatically
 
     arguments:
+        - document: `TOMLDocument`
         - location: `str | tuple[str, ...]`
         - default: `Any` = `None`
 
@@ -190,6 +191,7 @@ def set_toml_field(
     useful when setting fields programatically
 
     arguments:
+        - document: `TOMLDocument`
         - location: `str | tuple[str, ...]`
         - value: `Any`
 
@@ -422,6 +424,7 @@ def _get_model_field(
     a lack of type information, but useful when accessing fields programatically
 
     arguments:
+        - model: `M`
         - location: `str | tuple[str, ...]`
         - default: `Any` = `None`
 
