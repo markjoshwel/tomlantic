@@ -19,6 +19,8 @@ information :D
 - [api reference](#api-reference)
 - [licence](#licence)
 
+![hits](https://img.shields.io/endpoint?url=https://hits.dwyl.com/markjoshwel/tomlantic.json&style=flat-square&label=hits&color=6244bb)
+
 ## usage
 
 ### installation
