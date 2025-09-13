@@ -23,6 +23,7 @@ toml_doc = tomlkit.parse(
     "typechecked = false\n"
 )
 
+
 # 0.1.0: validators
 tomlantic.validate_heterogeneous_collection([1, 2, "3"], (int, str))
 tomlantic.validate_homogeneous_collection([1, 2, 3], int)
