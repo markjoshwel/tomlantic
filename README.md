@@ -521,33 +521,13 @@ validate values of a collection to a specific type or a tuple of types
 
 ## licence
 
-tomlantic is free and unencumbered software released into the public domain. for more
-information, please refer to [UNLICENCE](/UNLICENCE), <https://unlicense.org>, or the
-python module docstring.
+tomlantic is dually licensed under the [Unlicense](https://unlicense.org/)
+and the [0BSD License](https://opensource.org/licenses/0BSD).
 
-```text
-This is free and unencumbered software released into the public domain.
+for more information, please refer to [LICENCE.0BSD](/LICENCE.0BSD)
+and [LICENCE.UNLICENCE](/LICENCE.UNLICENCE).
 
-Anyone is free to copy, modify, publish, use, compile, sell, or
-distribute this software, either in source code form or as a compiled
-binary, for any purpose, commercial or non-commercial, and by any
-means.
-
-In jurisdictions that recognize copyright laws, the author or authors
-of this software dedicate any and all copyright interest in the
-software to the public domain. We make this dedication for the benefit
-of the public at large and to the detriment of our heirs and
-successors. We intend this dedication to be an overt act of
-relinquishment in perpetuity of all present and future rights to this
-software under copyright law.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
-OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-OTHER DEALINGS IN THE SOFTWARE.
-
-For more information, please refer to <http://unlicense.org/>
-```
+my wish is that, in jurisdictions that recognise public domain dedications,
+the Unlicence would take precedence. and in other jurisdictions or due to
+legal restrictions where a copyright safety net may be required,
+the 0BSD License would take precedence.
