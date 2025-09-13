@@ -1,6 +1,0 @@
-{
-  "packages": [
-    "poetry@latest",
-    "python38@latest"
-  ]
-}

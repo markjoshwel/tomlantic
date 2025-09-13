@@ -2,7 +2,12 @@
 name = "tomlantic"
 version = "0.2.2"
 description = "marrying pydantic models and tomlkit documents"
-authors = ["Mark Joshwel <mark@joshwel.co>"]
+authors = [
+  {name = "Mark Joshwel", email = "mark@joshwel.co"},
+]
+maintainers = [
+  {name = "Mark Joshwel", email = "mark@joshwel.co"},
+]
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -11,10 +16,6 @@ dependencies = [
 ]
 license = "Unlicense OR 0BSD"
 license-files = ["LICENSE*"]
-classifiers = [
-  "License :: OSI Approved :: The Unlicense (Unlicense)",
-  "License :: OSI Approved :: 0BSD License",
-]
 
 [dependency-groups]
 dev = [
