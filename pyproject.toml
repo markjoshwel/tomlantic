@@ -1,21 +1,27 @@
-[tool.poetry]
+[project]
 name = "tomlantic"
-version = "0.2.1"
+version = "0.2.2"
 description = "marrying pydantic models and tomlkit documents"
 authors = ["Mark Joshwel <mark@joshwel.co>"]
-license = "Unlicense"
 readme = "README.md"
-include = ["README.md"]
+requires-python = ">=3.13"
+dependencies = [
+    "pydantic>=2.0",
+    "tomlkit>=0.8",
+]
+license = "Unlicense OR 0BSD"
+license-files = ["LICENSE*"]
+classifiers = [
+  "License :: OSI Approved :: The Unlicense (Unlicense)",
+  "License :: OSI Approved :: 0BSD License",
+]
 
-[tool.poetry.dependencies]
-python = "^3.8"
-pydantic = ">=2.0"  # target
-tomlkit = ">=0.8"  # target
-
-[tool.poetry.group.dev.dependencies]
-black = "^24.2.0"
-isort = "^5.13.2"
-mypy = "^1.8.0"
+[dependency-groups]
+dev = [
+    "isort>=6.0.1",
+    "mypy>=1.18.1",
+    "ruff>=0.13.0",
+]
 
 [tool.black]
 line-length = 90
@@ -23,7 +29,3 @@ line-length = 90
 [tool.isort]
 line_length = 90
 profile = "black"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
