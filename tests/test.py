@@ -108,15 +108,15 @@ def main() -> None:
         exit(0)
 
     else:
-        print(
-            f"tomlantic tests: failed {len(failed_tests)}/{total_tests} ({len(failed_tests) / total_tests * 100:.2f}%) tests"
-        )
         for test_name, error_message in failed_tests.items():
             print(f"- {test_name}", file=stderr)
             print(
                 indent(error_message, prefix="  ... ", predicate=lambda _: True),
                 file=stderr,
             )
+        print(
+            f"tomlantic tests: failed {len(failed_tests)}/{total_tests} ({len(failed_tests) / total_tests * 100:.2f}%) tests"
+        )
         exit(len(failed_tests))
 
 
