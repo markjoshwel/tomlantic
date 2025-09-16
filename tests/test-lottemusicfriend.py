@@ -10,7 +10,7 @@
 from typing import Literal
 
 from pydantic import BaseModel
-from tomlkit import loads
+from tomlkit import loads, dumps
 
 from tomlantic import ModelBoundTOML
 
@@ -77,7 +77,7 @@ target.username = "xxx"
 
 
 def test() -> None:
-    ModelBoundTOML(LotteMusicFriendConfig, loads(EmptyLotteMusicFriendConfigText))
+    model = ModelBoundTOML(LotteMusicFriendConfig, loads(EmptyLotteMusicFriendConfigText))
 
     ModelBoundTOML(
         LotteMusicFriendConfig,
@@ -101,6 +101,8 @@ def test() -> None:
         pass
     else:
         assert "field assigned a value not within literal choices"
+    
+    print(dumps(model.model_dump_toml()))
 
 
 if __name__ == "__main__":

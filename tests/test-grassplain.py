@@ -11,7 +11,7 @@ from enum import Enum
 from typing import Final, Literal
 
 from pydantic import BaseModel, Field
-from tomlkit import loads
+from tomlkit import loads, dumps
 
 from tomlantic import ModelBoundTOML
 
@@ -236,7 +236,8 @@ description = "whether to generate a fix for malformed docstrings"
 
 
 def test():
-    ModelBoundTOML(GrassplainConfigurationFile, loads(GRASSPLAIN_MEADOW_EXAMPLE))
+    model = ModelBoundTOML(GrassplainConfigurationFile, loads(GRASSPLAIN_MEADOW_EXAMPLE))
+    print(dumps(model.model_dump_toml()))
 
 
 if __name__ == "__main__":
