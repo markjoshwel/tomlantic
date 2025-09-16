@@ -1,8 +1,8 @@
 # /// script
-# requires-python = ">=3.13"
+# requires-python = ">=3.9"
 # dependencies = [
 #     "pydantic",
-#     "tomlantic",
+#     "tomlantic @ ${PROJECT_ROOT}/",
 #     "tomlkit",
 # ]
 # ///
@@ -102,7 +102,7 @@ def test() -> None:
     else:
         assert "field assigned a value not within literal choices"
     
-    print(dumps(model.model_dump_toml()))
+    dumps(model.model_dump_toml())
 
 
 if __name__ == "__main__":
