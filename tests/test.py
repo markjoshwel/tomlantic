@@ -5,7 +5,6 @@ from subprocess import CompletedProcess, run
 from sys import argv, executable, stderr
 from textwrap import indent
 
-
 TEST_PATHS: list[Path] = [
     Path(__file__).parent.parent.joinpath("showcase.py"),
     *Path(__file__).parent.glob("test-*.py"),
@@ -23,7 +22,7 @@ def resolve_binaries() -> dict[str, list[str]]:
     }
 
     # test for uv, and/or signs of being run from the nix flake, or being in a nix environment
-    if any(
+    if not any(
         [
             getenv("name", default="").startswith("nix"),
             getenv("NIX_STORE", default=None) is not None,
@@ -31,15 +30,15 @@ def resolve_binaries() -> dict[str, list[str]]:
             str(which("python")).startswith(getenv("NIX_STORE", default="")),
         ]
     ):
-        print(
-            "tomlantic tests: note: nix detected, using whichever python is executing this",
-            " ... if you would like to test across multiple versions, run `nix run .#tests`",
-            sep="\n",
-            file=stderr,
-        )
-        versions_and_binaries["local"] = [executable]
+        # not in nix, detect uv or die
+        if not (bin_uv := which("uv")):
+            print(
+                "tomlantic tests: note: using whichever python is executing this",
+                file=stderr,
+            )
+            versions_and_binaries["local"] = [executable]
+            return versions_and_binaries
 
-    elif bin_uv := which("uv"):
         print("tomlantic tests: note: using uv for python management", file=stderr)
         versions_and_binaries["39"] = [bin_uv, "run", "--python", "python3.9"]
         versions_and_binaries["310"] = [bin_uv, "run", "--python", "python3.10"]
@@ -47,8 +46,14 @@ def resolve_binaries() -> dict[str, list[str]]:
         versions_and_binaries["312"] = [bin_uv, "run", "--python", "python3.12"]
         versions_and_binaries["313"] = [bin_uv, "run", "--python", "python3.13"]
         versions_and_binaries["314"] = [bin_uv, "run", "--python", "python3.14"]
+        return versions_and_binaries
 
-    elif len(argv) > 1:
+    print(
+        "tomlantic tests: note: nix detected, if you would like to test across multiple versions, run `nix run .#tests`",
+        file=stderr,
+    )
+
+    if len(argv) > 1:
         print(
             "tomlantic tests: note: using argument-provided python binaries",
             file=stderr,
@@ -59,7 +64,6 @@ def resolve_binaries() -> dict[str, list[str]]:
             version, binary_path = arg.split("=")
             if version in versions_and_binaries:
                 versions_and_binaries[version].append(binary_path)
-
     else:
         print(
             "tomlantic tests: note: using whichever python is executing this",
@@ -114,10 +118,11 @@ def main() -> None:
                 indent(error_message, prefix="  ... ", predicate=lambda _: True),
                 file=stderr,
             )
+        failure_percentage = len(failed_tests) / total_tests * 100
         print(
-            f"tomlantic tests: failed {len(failed_tests)}/{total_tests} ({len(failed_tests) / total_tests * 100:.2f}%) tests"
+            f"tomlantic tests: failed {len(failed_tests)}/{total_tests} ({failure_percentage:.2f}%) tests"
         )
-        exit(len(failed_tests))
+        exit(int(failure_percentage))
 
 
 if __name__ == "__main__":
