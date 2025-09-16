@@ -58,7 +58,7 @@ assert diff == tomlantic.Difference(
 
 toml = tomlantic.ModelBoundTOML(File, toml_doc)
 diff_test_changed = tomlkit.parse(
-    "[project]\n" 'name = "NOT tomlantic"\n' "typechecked = true\n"
+    '[project]\nname = "NOT tomlantic"\ntypechecked = true\n'
 )
 diff = toml.difference_between_document(incoming_document=diff_test_changed)
 assert diff == tomlantic.Difference(
@@ -71,7 +71,9 @@ assert diff == tomlantic.Difference(
 
 # new in 0.2.0: test get_toml_field and set_toml_field
 toml = tomlantic.ModelBoundTOML(File, toml_doc)
-assert tomlantic.get_toml_field(document=toml_doc, location="project.name") == "tomlantic"
+assert (
+    tomlantic.get_toml_field(document=toml_doc, location="project.name") == "tomlantic"
+)
 tomlantic.set_toml_field(
     document=toml_doc, location="project.name", value="NOT tomlantic"
 )

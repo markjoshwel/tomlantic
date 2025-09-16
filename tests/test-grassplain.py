@@ -11,7 +11,7 @@ from enum import Enum
 from typing import Final, Literal
 
 from pydantic import BaseModel, Field
-from tomlkit import loads, dumps
+from tomlkit import dumps, loads
 
 from tomlantic import ModelBoundTOML
 
