@@ -1,32 +1,7 @@
 """
 tomlantic: marrying pydantic models and tomlkit documents
----------------------------------------------------------
-with all my heart, 2024, mark joshwel <mark@joshwel.co>
-
-This is free and unencumbered software released into the public domain.
-
-Anyone is free to copy, modify, publish, use, compile, sell, or
-distribute this software, either in source code form or as a compiled
-binary, for any purpose, commercial or non-commercial, and by any
-means.
-
-In jurisdictions that recognize copyright laws, the author or authors
-of this software dedicate any and all copyright interest in the
-software to the public domain. We make this dedication for the benefit
-of the public at large and to the detriment of our heirs and
-successors. We intend this dedication to be an overt act of
-relinquishment in perpetuity of all present and future rights to this
-software under copyright law.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
-OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-OTHER DEALINGS IN THE SOFTWARE.
-
-For more information, please refer to <http://unlicense.org/>
+  with all my heart, 2024-2025, mark joshwel <mark@joshwel.co>
+  SPDX-License-Identifier: Unlicense OR 0BSD
 """
 
 from copy import deepcopy
@@ -398,7 +373,7 @@ def handle_validation_error(
     for tomalntic_error in errors:
         error_messages.append(
             f'Field "{".".join(tomalntic_error.loc)}": {str(tomalntic_error)} '
-            f'({tomalntic_error.pydantic_error["type"]})'
+            f"({tomalntic_error.pydantic_error['type']})"
         )
 
     raise TOMLValidationError(
@@ -413,7 +388,7 @@ M = TypeVar("M", bound=BaseModel)
 
 
 def _get_model_field(
-    model: M,
+    model: BaseModel,
     location: Union[str, Tuple[str, ...]],
     default: Any = None,
 ) -> Any:
@@ -500,7 +475,7 @@ class ModelBoundTOML(Generic[M]):
           - `pydantic.ValidationError`      if the document does not validate with the model and `handle_errors` is `False`
         """
         try:
-            self.model = model.model_validate(document)
+            self.model = model.model_validate(dict(document))
 
         except ValidationError as err:
             if not handle_errors:
@@ -508,9 +483,8 @@ class ModelBoundTOML(Generic[M]):
 
             handle_validation_error(err)
 
-        self.__original_model = model.model_validate(
-            document
-        )  # if we pass the first validation, this should pass too
+        # if we pass the first validation, this should pass too
+        self.__original_model = self.model.copy(deep=True)
         self.__document = document
 
     def model_dump_toml(self) -> TOMLDocument:
@@ -527,23 +501,23 @@ class ModelBoundTOML(Generic[M]):
                 og_key, og_val = original_kv
                 cu_key, cu_val = current_kv
 
-                assert (
-                    og_key == cu_key
-                ), f"old model and new model has different keys: '{og_key}'/'{cu_key}' (unreachable?)"
+                assert og_key == cu_key, (
+                    f"old model and new model has different keys: '{og_key}'/'{cu_key}' (unreachable?)"
+                )
 
                 if isinstance(cu_val, BaseModel):
-                    assert isinstance(
-                        og_val, BaseModel
-                    ), f"key '{og_key}'/'{cu_key}' old model and new model arent basemodels (unreachable?)"
+                    assert isinstance(og_val, BaseModel), (
+                        f"key '{og_key}'/'{cu_key}' old model and new model arent basemodels (unreachable?)"
+                    )
 
                     # check if table exists
                     if cu_key not in toml:
                         toml[cu_key] = table()
 
                     toml_cu_key = toml[cu_key]
-                    assert isinstance(
-                        toml_cu_key, (TOMLDocument, tomlitems.Table)
-                    ), f"key {cu_key}: attempting to recurse into an non-table/document"
+                    assert isinstance(toml_cu_key, (TOMLDocument, tomlitems.Table)), (
+                        f"key {cu_key}: attempting to recurse into an non-table/document"
+                    )
 
                     apply_model_differences(og_val, cu_val, toml_cu_key)
 
@@ -613,7 +587,9 @@ class ModelBoundTOML(Generic[M]):
 
         return _get_model_field(model=self.model, location=location, default=default)
 
-    def difference_between_document(self, incoming_document: TOMLDocument) -> Difference:
+    def difference_between_document(
+        self, incoming_document: TOMLDocument
+    ) -> Difference:
         """
         returns a tomlantic.Difference object of the incoming and outgoing fields that
         were changed between the model and the comparison_document
@@ -642,8 +618,7 @@ class ModelBoundTOML(Generic[M]):
                     if (
                         # check if table exists
                         # if it doesn't, it is a difference
-                        outgoing_key
-                        not in incoming_document
+                        outgoing_key not in incoming_document
                     ):
                         # if the incoming toml field doesnt exist, then it is the model
                         # that was changed
