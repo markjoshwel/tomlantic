@@ -1,8 +1,8 @@
 # /// script
-# requires-python = ">=3.13"
+# requires-python = ">=3.9"
 # dependencies = [
 #     "pydantic",
-#     "tomlantic",
+#     "tomlantic @ ${PROJECT_ROOT}/",
 #     "tomlkit",
 # ]
 # ///
@@ -236,8 +236,9 @@ description = "whether to generate a fix for malformed docstrings"
 
 
 def test():
-    model = ModelBoundTOML(GrassplainConfigurationFile, loads(GRASSPLAIN_MEADOW_EXAMPLE))
-    print(dumps(model.model_dump_toml()))
+    toml = ModelBoundTOML(GrassplainConfigurationFile, loads(GRASSPLAIN_MEADOW_EXAMPLE))
+    toml.model.global_.options["ignore"].delimiter = ";"
+    dumps(toml.model_dump_toml())
 
 
 if __name__ == "__main__":
