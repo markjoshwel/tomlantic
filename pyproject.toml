@@ -15,7 +15,7 @@ dependencies = [
     "tomlkit>=0.8",
 ]
 license = "Unlicense OR 0BSD"
-license-files = ["LICENSE*"]
+license-files = ["LICENCE*"]
 
 [dependency-groups]
 dev = [
@@ -23,6 +23,9 @@ dev = [
     "mypy>=1.18.1",
     "ruff>=0.13.0",
 ]
+
+[tool.setuptools]
+packages = ["tomlantic"]
 
 [tool.black]
 line-length = 90
