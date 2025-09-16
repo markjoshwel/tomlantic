@@ -6,6 +6,12 @@ from sys import argv, executable, stderr
 from textwrap import indent
 
 
+TEST_PATHS: list[Path] = [
+    Path(__file__).parent.parent.joinpath("showcase.py"),
+    *Path(__file__).parent.glob("test-*.py"),
+]
+
+
 def resolve_binaries() -> dict[str, list[str]]:
     versions_and_binaries: dict[str, list[str]] = {
         "39": [],
@@ -79,7 +85,7 @@ def main() -> None:
         if len(binary) == 0:  # unresolved or not given
             continue
 
-        for test_path in Path(__file__).parent.glob("test-*.py"):
+        for test_path in TEST_PATHS:
             print(
                 f"tomlantic tests: running {test_path.name}@py{version}...", file=stderr
             )
