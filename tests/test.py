@@ -45,7 +45,7 @@ def resolve_binaries() -> dict[str, list[str]]:
         versions_and_binaries["311"] = [bin_uv, "run", "--python", "python3.11"]
         versions_and_binaries["312"] = [bin_uv, "run", "--python", "python3.12"]
         versions_and_binaries["313"] = [bin_uv, "run", "--python", "python3.13"]
-        versions_and_binaries["314"] = [bin_uv, "run", "--python", "python3.14"]
+        # versions_and_binaries["314"] = [bin_uv, "run", "--python", "python3.14"]
         return versions_and_binaries
 
     print(
