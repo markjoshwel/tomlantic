@@ -38,13 +38,13 @@ model.project.typechecked = True
 
 # 0.1.0: dump the model back to a toml document
 new_toml_doc = toml.model_dump_toml()
-assert new_toml_doc["project"]["typechecked"] == True  # type: ignore
+assert new_toml_doc["project"]["typechecked"] is True  # type: ignore
 
 # new in 0.2.0: test ModelBoundTOML.get_field and ModelBoundTOML.set_field
-assert toml.get_field("project.typechecked") == True
+assert toml.get_field("project.typechecked") is True
 
 toml.set_field("project.typechecked", False)
-assert toml.model.project.typechecked == False
+assert toml.model.project.typechecked is False
 toml.set_field("project.typechecked", True)
 
 # new in 0.2.0: test differences
@@ -83,7 +83,7 @@ try:
         location="project.name.nonexistent",
         value="?",
     )
-except:
+except Exception:
     pass
 else:
     assert "set_toml_field should have failed here"
@@ -100,6 +100,6 @@ incoming_toml_doc = tomlkit.parse(
 )
 toml.load_from_document(incoming_document=incoming_toml_doc, selective=True)
 assert toml.model.project.description.endswith("!")
-assert toml.get_field("project.whuh") == None, "extra fields were not ignored"
+assert toml.get_field("project.whuh") is None, "extra fields were not ignored"
 
 print("ok!")
