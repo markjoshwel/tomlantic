@@ -9,7 +9,7 @@ maintainers = [
   {name = "Mark Joshwel", email = "mark@joshwel.co"},
 ]
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.9"
 dependencies = [
     "pydantic>=2.0",
     "tomlkit>=0.8",
