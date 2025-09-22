@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.9"
 
 [[package]]
@@ -253,11 +253,12 @@ dev = [
     { name = "isort" },
     { name = "mypy" },
     { name = "ruff" },
+    { name = "typing-extensions" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "pydantic", specifier = ">=2.0" },
+    { name = "pydantic", specifier = ">=2.1" },
     { name = "tomlkit", specifier = ">=0.8" },
 ]
 
@@ -266,6 +267,7 @@ dev = [
     { name = "isort", specifier = ">=6.0.1" },
     { name = "mypy", specifier = ">=1.18.1" },
     { name = "ruff", specifier = ">=0.13.0" },
+    { name = "typing-extensions", specifier = ">=4.15.0" },
 ]
 
 [[package]]
