@@ -11,7 +11,7 @@ from enum import Enum
 from typing import Final, Literal
 
 from pydantic import BaseModel, Field
-from tomlkit import dumps, loads
+from tomlkit import dumps, loads  # pyright: ignore[reportUnknownVariableType]
 
 from tomlantic import ModelBoundTOML
 
@@ -238,7 +238,7 @@ description = "whether to generate a fix for malformed docstrings"
 def test():
     toml = ModelBoundTOML(GrassplainConfigurationFile, loads(GRASSPLAIN_MEADOW_EXAMPLE))
     toml.model.global_.options["ignore"].delimiter = ";"
-    dumps(toml.model_dump_toml())
+    _ = dumps(toml.model_dump_toml())
 
 
 if __name__ == "__main__":

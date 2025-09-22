@@ -7,10 +7,10 @@
 # ]
 # ///
 
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel
-from tomlkit import dumps, loads
+from tomlkit import dumps, loads  # pyright: ignore[reportUnknownVariableType]
 
 from tomlantic import ModelBoundTOML
 
@@ -22,7 +22,7 @@ class TelegramServiceConfig(BaseModel):
 
 class TelegramTargetConfig(BaseModel):
     channel_id: int
-    send_message_as_id: int | None = None  # optional
+    send_message_as_id: Optional[int] = None
 
 
 class TelegramConfig(BaseModel):
@@ -81,7 +81,7 @@ def test() -> None:
         LotteMusicFriendConfig, loads(EmptyLotteMusicFriendConfigText)
     )
 
-    ModelBoundTOML(
+    _ = ModelBoundTOML(
         LotteMusicFriendConfig,
         loads(
             EmptyLotteMusicFriendConfigText.replace(
@@ -91,7 +91,7 @@ def test() -> None:
     )
 
     try:
-        ModelBoundTOML(
+        _ = ModelBoundTOML(
             LotteMusicFriendConfig,
             loads(
                 EmptyLotteMusicFriendConfigText.replace(
@@ -104,7 +104,7 @@ def test() -> None:
     else:
         assert "field assigned a value not within literal choices"
 
-    dumps(model.model_dump_toml())
+    _ = dumps(model.model_dump_toml())
 
 
 if __name__ == "__main__":
