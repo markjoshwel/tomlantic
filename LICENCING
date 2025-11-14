@@ -1,0 +1,25 @@
+This software is unencumbered and free-as-in-freedom.
+
+This project is dual-licensed under The Unlicense or the BSD Zero Clause
+License. (SPDX: `Unlicense OR 0BSD`)
+
+The spirit and intent of the project is to treat the work as public domain via
+The Unlicense, but providing the BSD Zero Clause License where public domain
+dedication is not possible due to policies bound to a contributor or their
+employer. However, this is not a legal condition.
+
+Either way, you are free to use the software as you wish, without any
+restrictions or obligations, subject only to the warranty disclaimers in the
+licence texts.
+
+> Does dual licencing not invalidate the ethos behind The Unlicense?
+
+Well yeah, but like, even if ten percent of code is 0BSD-licenced, the rest
+is still unlicenced. And that's... good enough, and better than the
+alternative of a fully 0BSD-licenced project. _Everyone should be able to
+contribute._
+
+---
+
+See the [CONTRIBUTING](./CONTRIBUTING), [UNLICENSE](./UNLICENSE), and
+[LICENSE-0BSD](./LICENSE-0BSD) files for more information.

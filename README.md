@@ -108,10 +108,4 @@ TODO
 tomlantic is dually licensed under the [Unlicense](https://unlicense.org/)
 and the [0BSD License](https://opensource.org/licenses/0BSD).
 
-for more information, please refer to [LICENCE.0BSD](/LICENCE.0BSD)
-and [LICENCE.UNLICENCE](/LICENCE.UNLICENCE).
-
-my wish is that, in jurisdictions that recognise public domain dedications,
-the Unlicence would take precedence. and in other jurisdictions or due to
-legal restrictions where a copyright safety net may be required,
-the 0BSD License would take precedence.
+for more information, please refer to [LICENCING](/LICENCING).
