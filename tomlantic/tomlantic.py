@@ -620,6 +620,7 @@ class ModelBoundTOML(Generic[M]):
 
     attributes:
         `model: M`
+            the bound pydantic model instance
 
     methods:
         `def __init__(self, model: type[M], document: TOMLDocument, handle_errors: bool = True) -> None: ...`
@@ -670,8 +671,11 @@ class ModelBoundTOML(Generic[M]):
 
         arguments:
             `model: type[M]`
+                the pydantic model type to instantiate
             `document: tomlkit.TOMLDocument`
+                the toml document to validate and bind to the model
             `handle_errors: bool = True`
+                whether to convert pydantic validation errors to tomlantic errors
 
         raises:
             `tomlantic.TOMLValidationError`
@@ -697,6 +701,7 @@ class ModelBoundTOML(Generic[M]):
         dumps the model as a style-preserved `tomlkit.TOMLDocument`
 
         returns: `tomlkit.TOMLDocument`
+            the model dumped to a toml document with original style preserved
         """
         document = deepcopy(self.__document)
 
@@ -914,8 +919,10 @@ class ModelBoundTOML(Generic[M]):
 
         arguments:
             `incoming_document: tomlkit.TOMLDocument`
+                the toml document to compare against
 
         returns: `tomlantic.Difference`
+            a namedtuple containing the incoming_changed_fields and outgoing_changed_fields
         """
 
         incoming_changed_fields: list[str] = []
@@ -1003,7 +1010,9 @@ class ModelBoundTOML(Generic[M]):
 
         arguments:
             `incoming_document: tomlkit.TOMLDocument`
+                the toml document to load fields from
             `selective: bool = True`
+                whether to selectively override fields
 
         by default, this method selectively overrides fields. so fields that have been
         changed in the model will NOT be overriden by the incoming document
