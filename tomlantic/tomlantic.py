@@ -22,8 +22,11 @@ from typing import (
 from pydantic import BaseModel, ValidationError
 from pydantic_core import ErrorDetails
 from tomlkit import TOMLDocument
+from tomlkit import array as toml_array
 from tomlkit import items as toml_items
 from tomlkit import table as toml_table
+from tomlkit.container import OutOfOrderTableProxy
+from tomlkit.items import AoT as toml_items_AoT
 
 if TYPE_CHECKING:
     from typing_extensions import override  # pyright: ignore[reportMissingModuleSource]
@@ -573,6 +576,44 @@ def _get_model_field(
         return default
 
 
+def _is_dict_of_basemodels(value: object) -> bool:
+    if not isinstance(value, dict):
+        return False
+    if not value:
+        return True
+    return all(isinstance(v, BaseModel) for v in value.values())
+
+
+def _is_list_of_basemodels(value: object) -> bool:
+    if not isinstance(value, list):
+        return False
+    if not value:
+        return True
+    return all(isinstance(item, BaseModel) for item in value)
+
+
+def _dicts_of_basemodels_differ(
+    original: dict[str, BaseModel], current: dict[str, BaseModel]
+) -> bool:
+    if original.keys() != current.keys():
+        return True
+    for key in original:
+        if original[key] != current[key]:
+            return True
+    return False
+
+
+def _lists_of_basemodels_differ(
+    original: list[BaseModel], current: list[BaseModel]
+) -> bool:
+    if len(original) != len(current):
+        return True
+    for i, (orig_item, curr_item) in enumerate(zip(original, current)):
+        if orig_item != curr_item:
+            return True
+    return False
+
+
 class ModelBoundTOML(Generic[M]):
     """
     glue class for pydantic models and tomlkit documents
@@ -659,6 +700,30 @@ class ModelBoundTOML(Generic[M]):
         """
         document = deepcopy(self.__document)
 
+        def _apply_basemodel_differences(
+            original_model: BaseModel,
+            current_model: BaseModel,
+            toml: Union[TOMLDocument, toml_items.Table],
+        ) -> None:
+            for original_kv, current_kv in zip(original_model, current_model):
+                og_key, og_val = original_kv  # pyright: ignore[reportAny] (from pydantic)
+                cu_key, cu_val = current_kv  # pyright: ignore[reportAny] (from pydantic)
+
+                if isinstance(cu_val, BaseModel):
+                    if cu_key not in toml:
+                        toml[cu_key] = toml_table()
+
+                    toml_cu_key = toml[cu_key]
+                    assert isinstance(
+                        toml_cu_key,
+                        (TOMLDocument, toml_items.Table, OutOfOrderTableProxy),
+                    ), f"key {cu_key}: attempting to recurse into an non-table/document"
+
+                    _apply_basemodel_differences(og_val, cu_val, toml_cu_key)
+
+                elif og_val != cu_val:
+                    toml[cu_key] = cu_val  # pyright: ignore[reportAny] (from pydantic)
+
         # add values that were changed from when the model was instantiated
         def apply_model_differences(
             original_model: BaseModel,
@@ -683,15 +748,78 @@ class ModelBoundTOML(Generic[M]):
                         toml[cu_key] = toml_table()
 
                     toml_cu_key = toml[cu_key]
-                    assert isinstance(toml_cu_key, (TOMLDocument, toml_items.Table)), (
-                        f"key {cu_key}: attempting to recurse into an non-table/document"
-                    )
+                    assert isinstance(
+                        toml_cu_key,
+                        (TOMLDocument, toml_items.Table, OutOfOrderTableProxy),
+                    ), f"key {cu_key}: attempting to recurse into an non-table/document"
 
                     apply_model_differences(og_val, cu_val, toml_cu_key)
 
                 elif original_kv != current_kv:
                     cu_key, cu_val = current_kv  # pyright: ignore[reportAny] (from pydantic)
-                    toml[cu_key] = cu_val
+
+                    if _is_dict_of_basemodels(cu_val) and _is_dict_of_basemodels(
+                        og_val
+                    ):
+                        if _dicts_of_basemodels_differ(og_val, cu_val):  # type: ignore[arg-type]
+                            if cu_key not in toml:
+                                toml[cu_key] = toml_table()
+
+                            toml_cu_key = toml[cu_key]
+                            assert isinstance(
+                                toml_cu_key, (TOMLDocument, toml_items.Table)
+                            ), (
+                                f"key {cu_key}: attempting to set table of tables in non-table/document"
+                            )
+
+                            cu_dict = cu_val  # type: ignore[assignment]
+                            og_dict = og_val  # type: ignore[assignment]
+                            for dict_key, dict_val in cu_dict.items():
+                                if (
+                                    dict_key not in og_dict
+                                    or og_dict[dict_key] != dict_val
+                                ):
+                                    if dict_key not in toml_cu_key:
+                                        toml_cu_key[dict_key] = toml_table()
+
+                                    toml_dict_table = toml_cu_key[dict_key]
+                                    assert isinstance(
+                                        toml_dict_table,
+                                        (TOMLDocument, toml_items.Table),
+                                    ), (
+                                        f"key {cu_key}.{dict_key}: attempting to set non-table/document"
+                                    )
+
+                                    if dict_key in og_dict:
+                                        _apply_basemodel_differences(
+                                            original_model=og_dict[dict_key],
+                                            current_model=dict_val,
+                                            toml=toml_dict_table,
+                                        )
+                                    else:
+                                        for val_key, val_val in dict_val:
+                                            toml_dict_table[val_key] = val_val  # pyright: ignore[reportAny]
+
+                    elif _is_list_of_basemodels(cu_val) and _is_list_of_basemodels(
+                        og_val
+                    ):
+                        if _lists_of_basemodels_differ(og_val, cu_val):  # type: ignore[arg-type]
+                            if cu_key not in toml:
+                                toml[cu_key] = toml_array()
+
+                            toml_array_val = toml[cu_key]
+                            assert isinstance(
+                                toml_array_val, (toml_items.Array, toml_items_AoT)
+                            ), f"key {cu_key}: value is not an array or array of tables"
+
+                            toml_array_val.clear()
+                            cu_list = cu_val  # type: ignore[assignment]
+                            for list_item in cu_list:
+                                item_dict = {k: v for k, v in list_item}  # pyright: ignore[reportAny]
+                                toml_array_val.append(item_dict)
+
+                    else:
+                        toml[cu_key] = cu_val
 
         apply_model_differences(self.__original_model, self.model, document)
         return document
@@ -817,7 +945,10 @@ class ModelBoundTOML(Generic[M]):
 
                     incoming_value = incoming_document[outgoing_key]
 
-                    if not isinstance(incoming_value, (TOMLDocument, toml_items.Table)):
+                    if not isinstance(
+                        incoming_value,
+                        (TOMLDocument, toml_items.Table, OutOfOrderTableProxy),
+                    ):
                         # if the model is a BaseModel but the document is not a table,
                         # the difference is incoming because we assume the model is the
                         # source of truth

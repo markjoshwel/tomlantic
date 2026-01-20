@@ -27,7 +27,9 @@ def resolve_binaries() -> dict[str, list[str]]:
             getenv("name", default="").startswith("nix"),
             getenv("NIX_STORE", default=None) is not None,
             getenv("IN_NIX_SHELL", default=None) is not None,
-            str(which("python")).startswith(getenv("NIX_STORE", default="")),
+            str(which("python")).startswith(
+                getenv("NIX_STORE", default="zsxgdfchgvjhbj")
+            ),
         ]
     ):
         # not in nix, detect uv or die
