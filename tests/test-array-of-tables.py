@@ -59,8 +59,7 @@ def test_modify_existing_item():
     assert "value = 2" in dumped
 
 
-def test_add_new_item():
-    toml = build_toml()
+def add_third_item(toml):
     toml.model.items.append(
         Item(
             name="third",
@@ -68,19 +67,18 @@ def test_add_new_item():
             active=True,
         )
     )
+
+
+def test_add_new_item():
+    toml = build_toml()
+    add_third_item(toml)
     dumped = dumps(toml.model_dump_toml())
     assert 'name = "third"' in dumped
 
 
 def test_remove_item_rebuilds_array():
     toml = build_toml()
-    toml.model.items.append(
-        Item(
-            name="third",
-            value=3,
-            active=True,
-        )
-    )
+    add_third_item(toml)
     toml.model.items.pop(0)
     dumped = dumps(toml.model_dump_toml())
     assert 'name = "first"' not in dumped
