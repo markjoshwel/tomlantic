@@ -40,21 +40,27 @@ active = false
 """
 
 
-def test():
+def build_toml():
+    return tomlantic.ModelBoundTOML(ConfigWithArray, loads(ARRAY_TEST_EXAMPLE))
+
+
+def test_dump_round_trip():
     """test array of tables (list[BaseModel])"""
 
-    toml = tomlantic.ModelBoundTOML(ConfigWithArray, loads(ARRAY_TEST_EXAMPLE))
-
-    # Test 1: initial dump should work
+    toml = build_toml()
     _ = dumps(toml.model_dump_toml())
 
-    # Test 2: modify existing item
+
+def test_modify_existing_item():
+    toml = build_toml()
     toml.model.items[0].value = 10
     dumped = dumps(toml.model_dump_toml())
     assert "value = 10" in dumped
     assert "value = 2" in dumped
 
-    # Test 3: add new item
+
+def test_add_new_item():
+    toml = build_toml()
     toml.model.items.append(
         Item(
             name="third",
@@ -65,7 +71,16 @@ def test():
     dumped = dumps(toml.model_dump_toml())
     assert 'name = "third"' in dumped
 
-    # Test 4: remove item (test array rebuild)
+
+def test_remove_item_rebuilds_array():
+    toml = build_toml()
+    toml.model.items.append(
+        Item(
+            name="third",
+            value=3,
+            active=True,
+        )
+    )
     toml.model.items.pop(0)
     dumped = dumps(toml.model_dump_toml())
     assert 'name = "first"' not in dumped
@@ -74,4 +89,7 @@ def test():
 
 
 if __name__ == "__main__":
-    test()
+    test_dump_round_trip()
+    test_modify_existing_item()
+    test_add_new_item()
+    test_remove_item_rebuilds_array()
